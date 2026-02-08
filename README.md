@@ -1,5 +1,11 @@
 # School Teaching & Syllabus Tracking System
 
+## Documentation
+
+Project documentation and design files can be viewed below:
+
+- 📄 [System Design Document](docs/Design.pdf)
+
 Welcome to the School Teaching & Syllabus Tracking System.  
 This project was developed to improve teaching organization and ensure efficient syllabus coverage by allowing school administrators to monitor teaching progress, assign daily tasks, and collect feedback from both teachers and students.
 
