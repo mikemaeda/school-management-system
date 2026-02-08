@@ -8,61 +8,114 @@ Project documentation and design files can be viewed below:
 - 📄 [System Design Document](Design..pdf)
 - 📄 [Development Document](Development..pdf)
 
+A role-based School Management System developed to improve teaching organization, monitor syllabus coverage, and enhance communication between the Head of School, teachers, and students.
 
-Welcome to the School Teaching & Syllabus Tracking System.  
-This project was developed to improve teaching organization and ensure efficient syllabus coverage by allowing school administrators to monitor teaching progress, assign daily tasks, and collect feedback from both teachers and students.
+This system centralizes teaching planning, task allocation, and feedback collection into one platform, helping schools ensure that lessons are completed on schedule and that student learning outcomes are continuously evaluated.
 
-The system centralizes communication between the head of school, teachers, and students, helping ensure that lessons are completed on schedule and learning outcomes are improved.
+---
+
+## Overview
+
+Many schools face challenges in tracking syllabus completion and monitoring teaching progress effectively. Teachers may struggle with daily planning, while administrators lack a centralized way to monitor lesson delivery and collect feedback from students.
+
+The School Management System addresses this problem by:
+
+- Allowing the Head of School to assign daily teaching tasks and deadlines.
+- Enabling teachers to submit daily checklists and reflections.
+- Allowing students to provide feedback on lessons.
+- Providing administrators with a centralized view of teaching progress and feedback.
+
+The system promotes accountability, organization, and improved communication within the school environment.
 
 ---
 
 ## Features
 
-- Role-based access for Head of School, Teachers, and Students.
-- Teacher task assignment and daily syllabus tracking.
-- Student reflection and feedback system.
-- Teacher daily checklist and progress submission.
-- Secure authentication with encrypted password storage.
-- Centralized database for storing users, feedback, and teaching progress.
-- Email notifications sent to teachers after task evaluation.
-- Simple and organized interface for monitoring teaching progress.
+### User Management
+- Role-based authentication system.
+- Separate portals for:
+  - Head of School
+  - Teachers
+  - Students
+- Secure login with encrypted password storage.
+- User data stored securely in a database.
 
----
+### Head of School Portal
+- Assign teaching tasks to teachers.
+- Add subject, class, day, and deadlines.
+- Monitor teacher progress and syllabus coverage.
+- View teacher feedback submissions.
+- View student reflections.
+- Send emails to teachers based on feedback and progress.
 
-## How It Works
+### Teacher Portal
+- View assigned teaching tasks.
+- Submit daily checklist and reflections.
+- Provide feedback on lesson preparation and delivery.
+- Report syllabus coverage status.
 
-### 1. User Registration and Login
-Teachers, students, and the head of school register using their information and log into their respective portals.
+### Student Portal
+- Submit lesson reflections.
+- Evaluate teaching clarity and engagement.
+- Provide additional comments for evaluation.
 
-### 2. Task Assignment
-The head of school assigns daily topics, notes, and deadlines to specific teachers based on syllabus requirements.
-
-### 3. Teaching and Feedback
-- Teachers submit daily task completion reports and reflections.
-- Students submit feedback on lessons and teaching effectiveness.
-
-### 4. Monitoring and Evaluation
-The head of school reviews teacher progress and student reflections to track syllabus completion and overall teaching quality.
+### Database Management
+- Centralized storage using SQLite.
+- Stores:
+  - User signups
+  - Teacher task details
+  - Teacher feedback
+  - Student feedback
 
 ---
 
 ## System Architecture
 
-- **Language:** Java  
-- **Programming Paradigm:** Object-Oriented Programming (OOP)  
-- **Database:** SQLite  
+### Technologies Used
+- **Programming Language:** Java
+- **Paradigm:** Object-Oriented Programming (OOP)
+- **Database:** SQLite
+- **Database Connectivity:** JDBC
 
-OOP principles such as encapsulation, inheritance, polymorphism, and abstraction are used to manage user roles and system functionality efficiently.
+### OOP Concepts Applied
+- Encapsulation for secure data handling.
+- Inheritance for shared user behaviors.
+- Polymorphism for role-based functionality.
+- Abstraction for managing system complexity.
 
 ---
+
+## System Workflow
+
+1. Users create accounts and select their role.
+2. The Head of School assigns teaching tasks to teachers.
+3. Teachers complete lessons and submit feedback.
+4. Students submit reflections on lessons.
+5. The Head of School reviews feedback and monitors progress.
+6. Emails are sent to teachers when necessary.
+
+---
+
+## Database Structure
+
+The system uses one SQLite database containing four main tables:
+
+- **Signup Table**
+  - Stores user information and roles.
+
+- **Teacher Details Table**
+  - Stores assigned teaching tasks and deadlines.
+
+- **Teacher Feedback Table**
+  - Stores teacher reflections and progress reports.
+
+- **Student Feedback Table**
+  - Stores student evaluations and comments.
 
 
 ## Installation
 
 1. Clone the repository:
+
 ```bash
-git clone
-
-https://github.com/mikemaeda/school-management-system.git
-
-
+git clone https://github.com/mikemaeda/school-management-system.git
