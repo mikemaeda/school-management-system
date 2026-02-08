@@ -5,8 +5,8 @@
 Project documentation and design files can be viewed below:
 
 
-- 📄 [System Design Document](Design.pdf)
-- 📄 [Development Document](Development.pdf)
+- 📄 [System Design Document](Design..pdf)
+- 📄 [Development Document](Development..pdf)
 
 
 Welcome to the School Teaching & Syllabus Tracking System.  
