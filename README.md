@@ -12,7 +12,6 @@ A role-based School Management System developed to improve teaching organization
 
 This system centralizes teaching planning, task allocation, and feedback collection into one platform, helping schools ensure that lessons are completed on schedule and that student learning outcomes are continuously evaluated.
 
----
 
 ## Overview
 
@@ -26,8 +25,6 @@ The School Management System addresses this problem by:
 - Providing administrators with a centralized view of teaching progress and feedback.
 
 The system promotes accountability, organization, and improved communication within the school environment.
-
----
 
 ## Features
 
