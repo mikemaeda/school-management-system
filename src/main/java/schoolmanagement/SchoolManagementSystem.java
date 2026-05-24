@@ -15,6 +15,15 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.List;
+import schoolmanagement.db.DBConnector;
+import schoolmanagement.model.DashboardStats;
+import schoolmanagement.model.Task;
+import schoolmanagement.model.TaskItem;
+import schoolmanagement.model.User;
+import schoolmanagement.model.UserItem;
+import schoolmanagement.service.CsvExporter;
+import schoolmanagement.service.EmailService;
+import schoolmanagement.service.SchoolService;
 import javax.mail.MessagingException;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
@@ -38,15 +47,6 @@ import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import schoolmanagement.db.DBConnector;
-import schoolmanagement.model.DashboardStats;
-import schoolmanagement.model.Task;
-import schoolmanagement.model.TaskItem;
-import schoolmanagement.model.User;
-import schoolmanagement.model.UserItem;
-import schoolmanagement.service.CsvExporter;
-import schoolmanagement.service.EmailService;
-import schoolmanagement.service.SchoolService;
 
 public class SchoolManagementSystem extends JFrame {
     private static final Color BACKGROUND = new Color(245, 247, 250);
@@ -60,18 +60,28 @@ public class SchoolManagementSystem extends JFrame {
     private final CardLayout rootLayout = new CardLayout();
     private final JPanel root = new JPanel(rootLayout);
 
-    private User currentUser;
     private JTextField loginEmailField;
     private JPasswordField loginPasswordField;
-    private JTextField firstNameField;
-    private JTextField lastNameField;
-    private JTextField idField;
-    private JTextField emailField;
-    private JPasswordField passwordField;
-    private JPasswordField confirmPasswordField;
-    private JComboBox<String> roleBox;
-    private JLabel titleLabel;
-    private JLabel subtitleLabel;
+
+    private JTextField registerFirstNameField;
+    private JTextField registerLastNameField;
+    private JTextField registerIdField;
+    private JTextField registerEmailField;
+    private JPasswordField registerPasswordField;
+    private JPasswordField registerConfirmPasswordField;
+    private JComboBox<String> registerRoleBox;
+
+    private User currentUser;
+    private JTabbedPane appTabs;
+    private JLabel appTitleLabel;
+    private JLabel appSubtitleLabel;
+
+    private JTextField taskSubjectField;
+    private JTextField taskClassField;
+    private JComboBox<String> taskDayBox;
+    private JComboBox<UserItem> taskTeacherBox;
+    private JTextField taskDeadlineField;
+    private JTextArea taskDetailsArea;
 
     private JTable overviewTable;
     private JTable usersTable;
@@ -79,32 +89,29 @@ public class SchoolManagementSystem extends JFrame {
     private JTable myTasksTable;
     private JTable teacherFeedbackTable;
     private JTable studentFeedbackTable;
-    private JComboBox<UserItem> taskTeacherBox;
-    private JTextField taskSubjectField;
-    private JTextField taskClassField;
-    private JComboBox<String> taskDayBox;
-    private JTextField taskDeadlineField;
-    private JTextArea taskDetailsArea;
-    private JComboBox<TaskItem> progressTaskBox;
-    private JComboBox<String> coverageBox;
+
+    private JComboBox<TaskItem> teacherTaskBox;
+    private JComboBox<String> teacherCoverageBox;
     private JSlider preparednessSlider;
     private JSlider deliverySlider;
     private JSlider enjoymentSlider;
-    private JTextArea progressNotesArea;
-    private JComboBox<UserItem> reflectionTeacherBox;
-    private JTextField reflectionSubjectField;
+    private JTextArea teacherNotesArea;
+
+    private JTextField studentSubjectField;
+    private JComboBox<UserItem> studentTeacherBox;
     private JSlider claritySlider;
     private JSlider engagementSlider;
     private JSlider comfortSlider;
     private JSlider pacingSlider;
     private JSlider ratingSlider;
-    private JTextArea reflectionCommentsArea;
+    private JTextArea studentCommentsArea;
 
     public SchoolManagementSystem() {
         super("School Teaching & Syllabus Tracking System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setMinimumSize(new Dimension(1100, 720));
         setLocationRelativeTo(null);
+
         root.add(createLoginPanel(), "login");
         root.add(createRegisterPanel(), "register");
         setContentPane(root);
@@ -113,94 +120,112 @@ public class SchoolManagementSystem extends JFrame {
 
     private JPanel createLoginPanel() {
         JPanel page = pagePanel();
-        JPanel card = authCard("School Management", "Track teaching tasks, syllabus progress, and feedback.");
+        JPanel card = authCard("School Management", "Track teaching tasks, syllabus progress, and student feedback.");
+
         loginEmailField = new JTextField(DBConnector.DEFAULT_ADMIN_EMAIL, 24);
         loginPasswordField = new JPasswordField(24);
-        addRow(card, "Email", loginEmailField, 2);
-        addRow(card, "Password", loginPasswordField, 3);
 
-        JPanel actions = buttonRow(2);
-        JButton signIn = primaryButton("Sign In");
-        signIn.addActionListener(event -> login());
-        JButton create = secondaryButton("Create Account");
-        create.addActionListener(event -> showRegister());
-        actions.add(signIn);
-        actions.add(create);
-        addFull(card, actions, 4);
-        addFull(card, smallText("First run head account: " + DBConnector.DEFAULT_ADMIN_EMAIL + " / " + DBConnector.DEFAULT_ADMIN_PASSWORD), 5);
-        page.add(card, centered());
+        addFormRow(card, "Email", loginEmailField, 2);
+        addFormRow(card, "Password", loginPasswordField, 3);
+
+        JButton loginButton = primaryButton("Sign In");
+        loginButton.addActionListener(event -> login());
+        JButton createButton = secondaryButton("Create Account");
+        createButton.addActionListener(event -> showRegister());
+
+        JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
+        actions.setOpaque(false);
+        actions.add(loginButton);
+        actions.add(createButton);
+        addFullWidth(card, actions, 4);
+
+        JLabel demo = smallText("First run head account: " + DBConnector.DEFAULT_ADMIN_EMAIL + " / " + DBConnector.DEFAULT_ADMIN_PASSWORD);
+        addFullWidth(card, demo, 5);
+
+        page.add(card, centeredConstraints());
         return page;
     }
 
     private JPanel createRegisterPanel() {
         JPanel page = pagePanel();
         JPanel card = authCard("Create Account", "Register as Head of School, Teacher, or Student.");
-        firstNameField = new JTextField(24);
-        lastNameField = new JTextField(24);
-        idField = new JTextField(24);
-        emailField = new JTextField(24);
-        passwordField = new JPasswordField(24);
-        confirmPasswordField = new JPasswordField(24);
-        roleBox = new JComboBox<>(new String[] {SchoolService.ROLE_HEAD, SchoolService.ROLE_TEACHER, SchoolService.ROLE_STUDENT});
-        addRow(card, "First Name", firstNameField, 2);
-        addRow(card, "Last Name", lastNameField, 3);
-        addRow(card, "School ID", idField, 4);
-        addRow(card, "Email", emailField, 5);
-        addRow(card, "Password", passwordField, 6);
-        addRow(card, "Confirm", confirmPasswordField, 7);
-        addRow(card, "Role", roleBox, 8);
 
-        JPanel actions = buttonRow(2);
-        JButton register = primaryButton("Create Account");
-        register.addActionListener(event -> register());
-        JButton back = secondaryButton("Back to Login");
-        back.addActionListener(event -> showLogin());
-        actions.add(register);
-        actions.add(back);
-        addFull(card, actions, 9);
-        page.add(card, centered());
+        registerFirstNameField = new JTextField(24);
+        registerLastNameField = new JTextField(24);
+        registerIdField = new JTextField(24);
+        registerEmailField = new JTextField(24);
+        registerPasswordField = new JPasswordField(24);
+        registerConfirmPasswordField = new JPasswordField(24);
+        registerRoleBox = new JComboBox<>(new String[] {"Head of School", "Teacher", "Student"});
+
+        addFormRow(card, "First Name", registerFirstNameField, 2);
+        addFormRow(card, "Last Name", registerLastNameField, 3);
+        addFormRow(card, "School ID", registerIdField, 4);
+        addFormRow(card, "Email", registerEmailField, 5);
+        addFormRow(card, "Password", registerPasswordField, 6);
+        addFormRow(card, "Confirm Password", registerConfirmPasswordField, 7);
+        addFormRow(card, "Role", registerRoleBox, 8);
+
+        JButton registerButton = primaryButton("Create Account");
+        registerButton.addActionListener(event -> register());
+        JButton backButton = secondaryButton("Back to Login");
+        backButton.addActionListener(event -> showLogin());
+
+        JPanel actions = new JPanel(new GridLayout(1, 2, 12, 0));
+        actions.setOpaque(false);
+        actions.add(registerButton);
+        actions.add(backButton);
+        addFullWidth(card, actions, 9);
+
+        page.add(card, centeredConstraints());
         return page;
     }
 
     private JPanel createAppPanel() {
-        JPanel page = new JPanel(new BorderLayout());
+        JPanel page = new JPanel(new BorderLayout(0, 0));
         page.setBackground(BACKGROUND);
+
         JPanel header = new JPanel(new BorderLayout(16, 0));
         header.setBorder(BorderFactory.createEmptyBorder(20, 24, 20, 24));
         header.setBackground(CARD);
-        JPanel copy = new JPanel(new GridLayout(2, 1));
-        copy.setOpaque(false);
-        titleLabel = new JLabel();
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        titleLabel.setForeground(TEXT);
-        subtitleLabel = smallText("");
-        copy.add(titleLabel);
-        copy.add(subtitleLabel);
-        JButton logout = secondaryButton("Logout");
-        logout.addActionListener(event -> logout());
-        header.add(copy, BorderLayout.CENTER);
-        header.add(logout, BorderLayout.EAST);
 
-        JTabbedPane tabs = new JTabbedPane();
-        tabs.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        tabs.add("Overview", createOverviewTab());
+        JPanel titlePanel = new JPanel(new GridLayout(2, 1));
+        titlePanel.setOpaque(false);
+        appTitleLabel = new JLabel("School Management");
+        appTitleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        appTitleLabel.setForeground(TEXT);
+        appSubtitleLabel = smallText("");
+        titlePanel.add(appTitleLabel);
+        titlePanel.add(appSubtitleLabel);
+
+        JButton logoutButton = secondaryButton("Logout");
+        logoutButton.addActionListener(event -> logout());
+
+        header.add(titlePanel, BorderLayout.CENTER);
+        header.add(logoutButton, BorderLayout.EAST);
+
+        appTabs = new JTabbedPane();
+        appTabs.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        appTabs.add("Overview", createOverviewTab());
+
         if (isHead()) {
-            tabs.add("Assign Tasks", createAssignTaskTab());
-            tabs.add("All Tasks", createAllTasksTab());
-            tabs.add("Users", createUsersTab());
-            tabs.add("Teacher Feedback", createTeacherFeedbackTab());
-            tabs.add("Student Feedback", createStudentFeedbackTab());
-            tabs.add("Email Teachers", createEmailTab());
-            tabs.add("Reports", createReportsTab());
+            appTabs.add("Assign Tasks", createAssignTaskTab());
+            appTabs.add("All Tasks", createAllTasksTab());
+            appTabs.add("Users", createUsersTab());
+            appTabs.add("Teacher Feedback", createTeacherFeedbackTab());
+            appTabs.add("Student Feedback", createStudentFeedbackTableTab());
+            appTabs.add("Email Teachers", createEmailTab());
+            appTabs.add("Reports", createReportsTab());
         } else if (isTeacher()) {
-            tabs.add("My Tasks", createMyTasksTab());
-            tabs.add("Submit Progress", createProgressTab());
+            appTabs.add("My Tasks", createMyTasksTab());
+            appTabs.add("Submit Progress", createTeacherProgressTab());
         } else {
-            tabs.add("Submit Reflection", createReflectionTab());
+            appTabs.add("Submit Reflection", createStudentReflectionTab());
         }
-        tabs.add("Account", createAccountTab());
+        appTabs.add("Account", createAccountTab());
+
         page.add(header, BorderLayout.NORTH);
-        page.add(tabs, BorderLayout.CENTER);
+        page.add(appTabs, BorderLayout.CENTER);
         return page;
     }
 
@@ -213,23 +238,29 @@ public class SchoolManagementSystem extends JFrame {
 
     private JPanel createAssignTaskTab() {
         JPanel panel = contentPanel();
-        JPanel form = cardPanel();
-        taskTeacherBox = new JComboBox<>();
+        JPanel form = cardPanel(new GridBagLayout());
+        panel.add(form, BorderLayout.NORTH);
+
         taskSubjectField = new JTextField(24);
         taskClassField = new JTextField(24);
         taskDayBox = new JComboBox<>(new String[] {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"});
+        taskTeacherBox = new JComboBox<>();
         taskDeadlineField = new JTextField(24);
-        taskDetailsArea = textArea(5);
-        addRow(form, "Subject", taskSubjectField, 0);
-        addRow(form, "Class", taskClassField, 1);
-        addRow(form, "Day", taskDayBox, 2);
-        addRow(form, "Teacher", taskTeacherBox, 3);
-        addRow(form, "Deadline", taskDeadlineField, 4);
-        addRow(form, "Details", new JScrollPane(taskDetailsArea), 5);
-        JButton assign = primaryButton("Assign Task");
-        assign.addActionListener(event -> assignTask());
-        addFull(form, assign, 6);
-        panel.add(form, BorderLayout.NORTH);
+        taskDetailsArea = new JTextArea(5, 24);
+        taskDetailsArea.setLineWrap(true);
+        taskDetailsArea.setWrapStyleWord(true);
+
+        addFormRow(form, "Subject", taskSubjectField, 0);
+        addFormRow(form, "Class", taskClassField, 1);
+        addFormRow(form, "Day", taskDayBox, 2);
+        addFormRow(form, "Teacher", taskTeacherBox, 3);
+        addFormRow(form, "Deadline", taskDeadlineField, 4);
+        addFormRow(form, "Task Details", new JScrollPane(taskDetailsArea), 5);
+
+        JButton assignButton = primaryButton("Assign Task");
+        assignButton.addActionListener(event -> assignTask());
+        addFullWidth(form, assignButton, 6);
+
         return panel;
     }
 
@@ -237,7 +268,19 @@ public class SchoolManagementSystem extends JFrame {
         JPanel panel = contentPanel();
         allTasksTable = table(new String[] {"ID", "Subject", "Class", "Day", "Teacher", "Deadline", "Status"});
         panel.add(new JScrollPane(allTasksTable), BorderLayout.CENTER);
-        panel.add(taskActions(allTasksTable), BorderLayout.SOUTH);
+
+        JPanel actions = new JPanel(new GridLayout(1, 3, 12, 0));
+        actions.setOpaque(false);
+        JButton refreshButton = secondaryButton("Refresh");
+        refreshButton.addActionListener(event -> refreshAll());
+        JButton inProgressButton = secondaryButton("Mark In Progress");
+        inProgressButton.addActionListener(event -> updateSelectedTaskStatus(allTasksTable, "In Progress"));
+        JButton completeButton = primaryButton("Mark Completed");
+        completeButton.addActionListener(event -> updateSelectedTaskStatus(allTasksTable, "Completed"));
+        actions.add(refreshButton);
+        actions.add(inProgressButton);
+        actions.add(completeButton);
+        panel.add(actions, BorderLayout.SOUTH);
         return panel;
     }
 
@@ -255,7 +298,7 @@ public class SchoolManagementSystem extends JFrame {
         return panel;
     }
 
-    private JPanel createStudentFeedbackTab() {
+    private JPanel createStudentFeedbackTableTab() {
         JPanel panel = contentPanel();
         studentFeedbackTable = table(new String[] {"Student", "Teacher", "Subject", "Rating", "Clarity", "Engagement", "Comfort", "Pacing", "Comments", "Date"});
         panel.add(new JScrollPane(studentFeedbackTable), BorderLayout.CENTER);
@@ -266,112 +309,157 @@ public class SchoolManagementSystem extends JFrame {
         JPanel panel = contentPanel();
         myTasksTable = table(new String[] {"ID", "Subject", "Class", "Day", "Deadline", "Status", "Details"});
         panel.add(new JScrollPane(myTasksTable), BorderLayout.CENTER);
-        panel.add(taskActions(myTasksTable), BorderLayout.SOUTH);
+
+        JPanel actions = new JPanel(new GridLayout(1, 3, 12, 0));
+        actions.setOpaque(false);
+        JButton refreshButton = secondaryButton("Refresh");
+        refreshButton.addActionListener(event -> refreshAll());
+        JButton inProgressButton = secondaryButton("Mark In Progress");
+        inProgressButton.addActionListener(event -> updateSelectedTaskStatus(myTasksTable, "In Progress"));
+        JButton completeButton = primaryButton("Mark Completed");
+        completeButton.addActionListener(event -> updateSelectedTaskStatus(myTasksTable, "Completed"));
+        actions.add(refreshButton);
+        actions.add(inProgressButton);
+        actions.add(completeButton);
+        panel.add(actions, BorderLayout.SOUTH);
         return panel;
     }
 
-    private JPanel createProgressTab() {
+    private JPanel createTeacherProgressTab() {
         JPanel panel = contentPanel();
-        JPanel form = cardPanel();
-        progressTaskBox = new JComboBox<>();
-        coverageBox = new JComboBox<>(new String[] {"Not started", "Started", "Halfway complete", "Mostly complete", "Completed"});
+        JPanel form = cardPanel(new GridBagLayout());
+        panel.add(form, BorderLayout.NORTH);
+
+        teacherTaskBox = new JComboBox<>();
+        teacherCoverageBox = new JComboBox<>(new String[] {"Not started", "Started", "Halfway complete", "Mostly complete", "Completed"});
         preparednessSlider = slider();
         deliverySlider = slider();
         enjoymentSlider = slider();
-        progressNotesArea = textArea(5);
-        addRow(form, "Task", progressTaskBox, 0);
-        addRow(form, "Coverage", coverageBox, 1);
-        addRow(form, "Preparedness", preparednessSlider, 2);
-        addRow(form, "Delivery", deliverySlider, 3);
-        addRow(form, "Enjoyment", enjoymentSlider, 4);
-        addRow(form, "Notes", new JScrollPane(progressNotesArea), 5);
-        JButton submit = primaryButton("Submit Progress");
-        submit.addActionListener(event -> submitProgress());
-        addFull(form, submit, 6);
-        panel.add(form, BorderLayout.NORTH);
+        teacherNotesArea = new JTextArea(5, 24);
+        teacherNotesArea.setLineWrap(true);
+        teacherNotesArea.setWrapStyleWord(true);
+
+        addFormRow(form, "Task", teacherTaskBox, 0);
+        addFormRow(form, "Coverage", teacherCoverageBox, 1);
+        addFormRow(form, "Preparedness", preparednessSlider, 2);
+        addFormRow(form, "Delivery", deliverySlider, 3);
+        addFormRow(form, "Student Enjoyment", enjoymentSlider, 4);
+        addFormRow(form, "Reflection Notes", new JScrollPane(teacherNotesArea), 5);
+
+        JButton submitButton = primaryButton("Submit Progress");
+        submitButton.addActionListener(event -> submitTeacherProgress());
+        addFullWidth(form, submitButton, 6);
         return panel;
     }
 
-    private JPanel createReflectionTab() {
+    private JPanel createStudentReflectionTab() {
         JPanel panel = contentPanel();
-        JPanel form = cardPanel();
-        reflectionTeacherBox = new JComboBox<>();
-        reflectionSubjectField = new JTextField(24);
+        JPanel form = cardPanel(new GridBagLayout());
+        panel.add(form, BorderLayout.NORTH);
+
+        studentTeacherBox = new JComboBox<>();
+        studentSubjectField = new JTextField(24);
         claritySlider = slider();
         engagementSlider = slider();
         comfortSlider = slider();
         pacingSlider = slider();
         ratingSlider = slider();
-        reflectionCommentsArea = textArea(5);
-        addRow(form, "Teacher", reflectionTeacherBox, 0);
-        addRow(form, "Subject", reflectionSubjectField, 1);
-        addRow(form, "Clarity", claritySlider, 2);
-        addRow(form, "Engagement", engagementSlider, 3);
-        addRow(form, "Comfort", comfortSlider, 4);
-        addRow(form, "Pacing", pacingSlider, 5);
-        addRow(form, "Rating", ratingSlider, 6);
-        addRow(form, "Comments", new JScrollPane(reflectionCommentsArea), 7);
-        JButton submit = primaryButton("Submit Reflection");
-        submit.addActionListener(event -> submitReflection());
-        addFull(form, submit, 8);
-        panel.add(form, BorderLayout.NORTH);
+        studentCommentsArea = new JTextArea(5, 24);
+        studentCommentsArea.setLineWrap(true);
+        studentCommentsArea.setWrapStyleWord(true);
+
+        addFormRow(form, "Teacher", studentTeacherBox, 0);
+        addFormRow(form, "Subject", studentSubjectField, 1);
+        addFormRow(form, "Clarity", claritySlider, 2);
+        addFormRow(form, "Engagement", engagementSlider, 3);
+        addFormRow(form, "Comfort", comfortSlider, 4);
+        addFormRow(form, "Pacing", pacingSlider, 5);
+        addFormRow(form, "Overall Rating", ratingSlider, 6);
+        addFormRow(form, "Comments", new JScrollPane(studentCommentsArea), 7);
+
+        JButton submitButton = primaryButton("Submit Reflection");
+        submitButton.addActionListener(event -> submitStudentReflection());
+        addFullWidth(form, submitButton, 8);
         return panel;
     }
 
     private JPanel createEmailTab() {
         JPanel panel = contentPanel();
-        JPanel form = cardPanel();
-        JTextField subject = new JTextField(24);
-        JTextArea body = textArea(8);
-        addRow(form, "Subject", subject, 0);
-        addRow(form, "Message", new JScrollPane(body), 1);
-        addFull(form, smallText(emailService.configurationMessage()), 2);
-        JButton send = primaryButton("Send to Teachers");
-        send.addActionListener(event -> sendTeachers(subject.getText(), body.getText()));
-        addFull(form, send, 3);
+        JPanel form = cardPanel(new GridBagLayout());
         panel.add(form, BorderLayout.NORTH);
+
+        JTextField subjectField = new JTextField(24);
+        JTextArea bodyArea = new JTextArea(8, 24);
+        bodyArea.setLineWrap(true);
+        bodyArea.setWrapStyleWord(true);
+        JLabel statusLabel = smallText(emailService.configurationMessage());
+        addFormRow(form, "Subject", subjectField, 0);
+        addFormRow(form, "Message", new JScrollPane(bodyArea), 1);
+        addFullWidth(form, statusLabel, 2);
+
+        JButton sendButton = primaryButton("Send to Teachers");
+        sendButton.addActionListener(event -> sendTeacherEmails(subjectField.getText(), bodyArea.getText()));
+        addFullWidth(form, sendButton, 3);
         return panel;
     }
 
     private JPanel createReportsTab() {
         JPanel panel = contentPanel();
-        JPanel form = cardPanel();
+        JPanel form = cardPanel(new GridBagLayout());
+        panel.add(form, BorderLayout.NORTH);
+
         JLabel title = new JLabel("Export CSV reports");
         title.setFont(new Font("Segoe UI", Font.BOLD, 18));
         title.setForeground(TEXT);
-        addFull(form, title, 0);
-        JPanel buttons = buttonRow(2);
-        JButton users = secondaryButton("Export Users");
-        users.addActionListener(event -> exportTable(usersTable, "users.csv"));
-        JButton tasks = secondaryButton("Export Tasks");
-        tasks.addActionListener(event -> exportTable(allTasksTable, "tasks.csv"));
-        JButton teacherFeedback = secondaryButton("Export Teacher Feedback");
-        teacherFeedback.addActionListener(event -> exportTable(teacherFeedbackTable, "teacher-feedback.csv"));
-        JButton studentFeedback = secondaryButton("Export Student Feedback");
-        studentFeedback.addActionListener(event -> exportTable(studentFeedbackTable, "student-feedback.csv"));
-        buttons.add(users);
-        buttons.add(tasks);
-        buttons.add(teacherFeedback);
-        buttons.add(studentFeedback);
-        addFull(form, buttons, 1);
-        panel.add(form, BorderLayout.NORTH);
+        addFullWidth(form, title, 0);
+        addFullWidth(form, smallText("Exports use the latest table data, including current sorting."), 1);
+
+        JPanel actions = new JPanel(new GridLayout(2, 2, 12, 12));
+        actions.setOpaque(false);
+        JButton usersButton = secondaryButton("Export Users");
+        usersButton.addActionListener(event -> exportTable(usersTable, "users.csv"));
+        JButton tasksButton = secondaryButton("Export Tasks");
+        tasksButton.addActionListener(event -> exportTable(allTasksTable, "tasks.csv"));
+        JButton teacherFeedbackButton = secondaryButton("Export Teacher Feedback");
+        teacherFeedbackButton.addActionListener(event -> exportTable(teacherFeedbackTable, "teacher-feedback.csv"));
+        JButton studentFeedbackButton = secondaryButton("Export Student Feedback");
+        studentFeedbackButton.addActionListener(event -> exportTable(studentFeedbackTable, "student-feedback.csv"));
+        actions.add(usersButton);
+        actions.add(tasksButton);
+        actions.add(teacherFeedbackButton);
+        actions.add(studentFeedbackButton);
+        addFullWidth(form, actions, 2);
         return panel;
     }
 
     private JPanel createAccountTab() {
         JPanel panel = contentPanel();
-        JPanel form = cardPanel();
-        addFull(form, smallText("Signed in as " + currentUser.email + " (" + currentUser.role + ")."), 0);
-        JButton password = primaryButton("Change Password");
-        password.addActionListener(event -> promptPasswordChange(false));
-        addFull(form, password, 1);
+        JPanel form = cardPanel(new GridBagLayout());
         panel.add(form, BorderLayout.NORTH);
+
+        JLabel title = new JLabel("Account security");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        title.setForeground(TEXT);
+        addFullWidth(form, title, 0);
+        addFullWidth(form, smallText("Signed in as " + currentUser.email + " (" + currentUser.role + ")."), 1);
+
+        JButton passwordButton = primaryButton("Change Password");
+        passwordButton.addActionListener(event -> promptPasswordChange(false));
+        addFullWidth(form, passwordButton, 2);
         return panel;
     }
 
     private void login() {
+        String email = loginEmailField.getText().trim();
+        String password = new String(loginPasswordField.getPassword());
+
+        if (email.isBlank() || password.isBlank()) {
+            showError("Please enter both email and password.");
+            return;
+        }
+
         try {
-            User user = schoolService.authenticate(loginEmailField.getText().trim(), new String(loginPasswordField.getPassword()));
+            User user = authenticate(email, password);
             if (user == null) {
                 showError("Invalid email or password.");
                 return;
@@ -381,21 +469,42 @@ public class SchoolManagementSystem extends JFrame {
             if (schoolService.needsFirstRunPasswordChange(currentUser)) {
                 promptPasswordChange(true);
             }
-        } catch (SQLException ex) {
+        } catch (SQLException | IllegalArgumentException ex) {
             showError("Login failed: " + ex.getMessage());
         }
     }
 
     private void register() {
-        String password = new String(passwordField.getPassword());
-        if (!password.equals(new String(confirmPasswordField.getPassword()))) {
+        String firstName = registerFirstNameField.getText().trim();
+        String lastName = registerLastNameField.getText().trim();
+        String idNo = registerIdField.getText().trim();
+        String email = registerEmailField.getText().trim();
+        String password = new String(registerPasswordField.getPassword());
+        String confirmPassword = new String(registerConfirmPasswordField.getPassword());
+        String role = (String) registerRoleBox.getSelectedItem();
+
+        if (firstName.isBlank() || lastName.isBlank() || idNo.isBlank() || email.isBlank() || password.isBlank()) {
+            showError("All fields are required.");
+            return;
+        }
+        if (!email.contains("@")) {
+            showError("Please enter a valid email address.");
+            return;
+        }
+        if (password.length() < 8) {
+            showError("Password must be at least 8 characters.");
+            return;
+        }
+        if (!password.equals(confirmPassword)) {
             showError("Passwords do not match.");
             return;
         }
+
         try {
-            schoolService.createUser(firstNameField.getText(), lastNameField.getText(), idField.getText(), emailField.getText(), password, (String) roleBox.getSelectedItem());
+            createUser(firstName, lastName, idNo, email, password, role);
             JOptionPane.showMessageDialog(this, "Account created. You can sign in now.");
-            loginEmailField.setText(emailField.getText().trim());
+            loginEmailField.setText(email);
+            loginPasswordField.setText("");
             clearRegisterForm();
             showLogin();
         } catch (SQLException | IllegalArgumentException ex) {
@@ -405,12 +514,23 @@ public class SchoolManagementSystem extends JFrame {
 
     private void assignTask() {
         UserItem teacher = (UserItem) taskTeacherBox.getSelectedItem();
+        String subject = taskSubjectField.getText().trim();
+        String className = taskClassField.getText().trim();
+        String day = (String) taskDayBox.getSelectedItem();
+        String deadline = taskDeadlineField.getText().trim();
+        String details = taskDetailsArea.getText().trim();
+
         if (teacher == null) {
             showError("Please create or select a teacher first.");
             return;
         }
+        if (subject.isBlank() || className.isBlank() || details.isBlank()) {
+            showError("Subject, class, and task details are required.");
+            return;
+        }
+
         try {
-            schoolService.assignTask(taskSubjectField.getText(), taskClassField.getText(), (String) taskDayBox.getSelectedItem(), teacher.user.idNo, taskDetailsArea.getText(), taskDeadlineField.getText());
+            schoolService.assignTask(subject, className, day, teacher.user.idNo, details, deadline);
             clearTaskForm();
             refreshAll();
             JOptionPane.showMessageDialog(this, "Task assigned to " + teacher + ".");
@@ -419,15 +539,24 @@ public class SchoolManagementSystem extends JFrame {
         }
     }
 
-    private void submitProgress() {
-        TaskItem item = (TaskItem) progressTaskBox.getSelectedItem();
-        if (item == null) {
+    private void submitTeacherProgress() {
+        TaskItem task = (TaskItem) teacherTaskBox.getSelectedItem();
+        if (task == null) {
             showError("You do not have any assigned tasks yet.");
             return;
         }
+
         try {
-            schoolService.submitTeacherProgress(currentUser, item.task.id, (String) coverageBox.getSelectedItem(), progressNotesArea.getText(), preparednessSlider.getValue(), deliverySlider.getValue(), enjoymentSlider.getValue());
-            progressNotesArea.setText("");
+            schoolService.submitTeacherProgress(
+                currentUser,
+                task.task.id,
+                (String) teacherCoverageBox.getSelectedItem(),
+                teacherNotesArea.getText(),
+                preparednessSlider.getValue(),
+                deliverySlider.getValue(),
+                enjoymentSlider.getValue()
+            );
+            teacherNotesArea.setText("");
             refreshAll();
             JOptionPane.showMessageDialog(this, "Progress submitted.");
         } catch (SQLException | IllegalArgumentException ex) {
@@ -435,12 +564,29 @@ public class SchoolManagementSystem extends JFrame {
         }
     }
 
-    private void submitReflection() {
-        UserItem teacher = (UserItem) reflectionTeacherBox.getSelectedItem();
+    private void submitStudentReflection() {
+        UserItem teacher = (UserItem) studentTeacherBox.getSelectedItem();
+        String subject = studentSubjectField.getText().trim();
+
+        if (subject.isBlank()) {
+            showError("Subject is required.");
+            return;
+        }
+
         try {
-            schoolService.submitStudentReflection(currentUser, teacher == null ? null : teacher.user.idNo, reflectionSubjectField.getText(), claritySlider.getValue(), engagementSlider.getValue(), comfortSlider.getValue(), pacingSlider.getValue(), ratingSlider.getValue(), reflectionCommentsArea.getText());
-            reflectionSubjectField.setText("");
-            reflectionCommentsArea.setText("");
+            schoolService.submitStudentReflection(
+                currentUser,
+                teacher == null ? null : teacher.user.idNo,
+                subject,
+                claritySlider.getValue(),
+                engagementSlider.getValue(),
+                comfortSlider.getValue(),
+                pacingSlider.getValue(),
+                ratingSlider.getValue(),
+                studentCommentsArea.getText()
+            );
+            studentSubjectField.setText("");
+            studentCommentsArea.setText("");
             refreshAll();
             JOptionPane.showMessageDialog(this, "Reflection submitted. Thank you.");
         } catch (SQLException | IllegalArgumentException ex) {
@@ -449,21 +595,26 @@ public class SchoolManagementSystem extends JFrame {
     }
 
     private void updateSelectedTaskStatus(JTable table, String status) {
-        int selected = table.getSelectedRow();
-        if (selected < 0) {
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow < 0) {
             showError("Select a task first.");
             return;
         }
-        int id = Integer.parseInt(table.getModel().getValueAt(table.convertRowIndexToModel(selected), 0).toString());
+        int modelRow = table.convertRowIndexToModel(selectedRow);
+        int taskId = Integer.parseInt(table.getModel().getValueAt(modelRow, 0).toString());
         try {
-            schoolService.updateTaskStatus(id, status);
+            updateTaskStatus(taskId, status);
             refreshAll();
         } catch (SQLException ex) {
             showError("Could not update task: " + ex.getMessage());
         }
     }
 
-    private void sendTeachers(String subject, String body) {
+    private void updateTaskStatus(int taskId, String status) throws SQLException {
+        schoolService.updateTaskStatus(taskId, status);
+    }
+
+    private void sendTeacherEmails(String subject, String body) {
         if (subject.isBlank() || body.isBlank()) {
             showError("Subject and message are required.");
             return;
@@ -472,13 +623,18 @@ public class SchoolManagementSystem extends JFrame {
             showError(emailService.configurationMessage());
             return;
         }
+
         try {
-            List<User> teachers = schoolService.getUsersByRole(SchoolService.ROLE_TEACHER);
+            List<User> teachers = getUsersByRole("Teacher");
+            if (teachers.isEmpty()) {
+                showError("There are no teacher accounts yet.");
+                return;
+            }
             for (User teacher : teachers) {
                 emailService.send(teacher.email, subject, body);
             }
             JOptionPane.showMessageDialog(this, "Email sent to " + teachers.size() + " teacher(s).");
-        } catch (SQLException | MessagingException ex) {
+        } catch (SQLException | MessagingException | IllegalArgumentException ex) {
             showError("Could not send emails: " + ex.getMessage());
         }
     }
@@ -487,23 +643,26 @@ public class SchoolManagementSystem extends JFrame {
         if (currentUser == null) {
             return;
         }
-        titleLabel.setText("Welcome, " + currentUser.fullName());
-        subtitleLabel.setText(currentUser.role + " | " + currentUser.email);
+
+        appTitleLabel.setText("Welcome, " + currentUser.firstName + " " + currentUser.lastName);
+        appSubtitleLabel.setText(currentUser.role + " | " + currentUser.email);
+
         try {
             loadOverview();
             loadTeacherOptions();
+
             if (isHead()) {
-                loadUsers();
-                loadAllTasks();
-                loadTeacherFeedback();
-                loadStudentFeedback();
+                loadUsersTable();
+                loadAllTasksTable();
+                loadTeacherFeedbackTable();
+                loadStudentFeedbackTable();
             }
             if (isTeacher()) {
-                loadMyTasks();
-                loadProgressTasks();
+                loadMyTasksTable();
+                loadTeacherTaskOptions();
             }
             if (isStudent()) {
-                loadReflectionTeachers();
+                loadStudentTeacherOptions();
             }
         } catch (SQLException ex) {
             showError("Could not refresh data: " + ex.getMessage());
@@ -523,43 +682,46 @@ public class SchoolManagementSystem extends JFrame {
         model.addRow(new Object[] {"Completed tasks", stats.completedTasks});
         model.addRow(new Object[] {"Teacher progress reports", stats.teacherFeedback});
         model.addRow(new Object[] {"Student reflections", stats.studentFeedback});
+        model.addRow(new Object[] {"First-run admin email", DBConnector.DEFAULT_ADMIN_EMAIL});
     }
 
-    private void loadUsers() throws SQLException {
+    private void loadUsersTable() throws SQLException {
         DefaultTableModel model = model(usersTable);
         model.setRowCount(0);
-        for (User user : schoolService.getUsers()) {
-            model.addRow(new Object[] {user.id, user.fullName(), user.idNo, user.email, user.role});
+        for (User user : getUsers()) {
+            model.addRow(new Object[] {user.id, user.firstName + " " + user.lastName, user.idNo, user.email, user.role});
         }
     }
 
-    private void loadAllTasks() throws SQLException {
+    private void loadAllTasksTable() throws SQLException {
         DefaultTableModel model = model(allTasksTable);
         model.setRowCount(0);
-        for (Task task : schoolService.getTasks(null)) {
+        for (Task task : getTasks(null)) {
             model.addRow(new Object[] {task.id, task.subject, task.className, task.day, task.teacherName, task.deadline, task.status});
         }
     }
 
-    private void loadMyTasks() throws SQLException {
+    private void loadMyTasksTable() throws SQLException {
         DefaultTableModel model = model(myTasksTable);
         model.setRowCount(0);
-        for (Task task : schoolService.getTasks(currentUser.idNo)) {
+        for (Task task : getTasks(currentUser.idNo)) {
             model.addRow(new Object[] {task.id, task.subject, task.className, task.day, task.deadline, task.status, task.details});
         }
     }
 
-    private void loadTeacherFeedback() throws SQLException {
+    private void loadTeacherFeedbackTable() throws SQLException {
         DefaultTableModel model = model(teacherFeedbackTable);
         model.setRowCount(0);
+
         for (Object[] row : schoolService.getTeacherFeedbackRows()) {
             model.addRow(row);
         }
     }
 
-    private void loadStudentFeedback() throws SQLException {
+    private void loadStudentFeedbackTable() throws SQLException {
         DefaultTableModel model = model(studentFeedbackTable);
         model.setRowCount(0);
+
         for (Object[] row : schoolService.getStudentFeedbackRows()) {
             model.addRow(row);
         }
@@ -570,43 +732,72 @@ public class SchoolManagementSystem extends JFrame {
             return;
         }
         DefaultComboBoxModel<UserItem> model = new DefaultComboBoxModel<>();
-        for (User teacher : schoolService.getUsersByRole(SchoolService.ROLE_TEACHER)) {
+        for (User teacher : getUsersByRole("Teacher")) {
             model.addElement(new UserItem(teacher));
         }
         taskTeacherBox.setModel(model);
     }
 
-    private void loadProgressTasks() throws SQLException {
-        if (progressTaskBox == null) {
-            return;
-        }
-        DefaultComboBoxModel<TaskItem> model = new DefaultComboBoxModel<>();
-        for (Task task : schoolService.getTasks(currentUser.idNo)) {
-            model.addElement(new TaskItem(task));
-        }
-        progressTaskBox.setModel(model);
-    }
-
-    private void loadReflectionTeachers() throws SQLException {
-        if (reflectionTeacherBox == null) {
+    private void loadStudentTeacherOptions() throws SQLException {
+        if (studentTeacherBox == null) {
             return;
         }
         DefaultComboBoxModel<UserItem> model = new DefaultComboBoxModel<>();
-        for (User teacher : schoolService.getUsersByRole(SchoolService.ROLE_TEACHER)) {
+        for (User teacher : getUsersByRole("Teacher")) {
             model.addElement(new UserItem(teacher));
         }
-        reflectionTeacherBox.setModel(model);
+        studentTeacherBox.setModel(model);
+    }
+
+    private void loadTeacherTaskOptions() throws SQLException {
+        if (teacherTaskBox == null) {
+            return;
+        }
+        DefaultComboBoxModel<TaskItem> model = new DefaultComboBoxModel<>();
+        for (Task task : getTasks(currentUser.idNo)) {
+            model.addElement(new TaskItem(task));
+        }
+        teacherTaskBox.setModel(model);
+    }
+
+    private User authenticate(String email, String password) throws SQLException {
+        return schoolService.authenticate(email, password);
+    }
+
+    private void createUser(String firstName, String lastName, String idNo, String email, String password, String role) throws SQLException {
+        schoolService.createUser(firstName, lastName, idNo, email, password, role);
+    }
+
+    private List<User> getUsers() throws SQLException {
+        return schoolService.getUsers();
+    }
+
+    private List<User> getUsersByRole(String role) throws SQLException {
+        return schoolService.getUsersByRole(role);
+    }
+
+    private List<Task> getTasks(String teacherIdNo) throws SQLException {
+        return schoolService.getTasks(teacherIdNo);
     }
 
     private boolean promptPasswordChange(boolean required) {
-        JPasswordField newPassword = new JPasswordField(22);
-        JPasswordField confirm = new JPasswordField(22);
-        JPanel panel = cardPanel();
-        addRow(panel, "New Password", newPassword, 0);
-        addRow(panel, "Confirm", confirm, 1);
-        addFull(panel, smallText("Use at least 8 characters with one letter and one number."), 2);
+        JPasswordField newPasswordField = new JPasswordField(22);
+        JPasswordField confirmPasswordField = new JPasswordField(22);
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+        addFormRow(panel, "New Password", newPasswordField, 0);
+        addFormRow(panel, "Confirm Password", confirmPasswordField, 1);
+        addFullWidth(panel, smallText("Use at least 8 characters with one letter and one number."), 2);
+
         while (true) {
-            int option = JOptionPane.showConfirmDialog(this, panel, required ? "Change Default Admin Password" : "Change Password", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            int option = JOptionPane.showConfirmDialog(
+                this,
+                panel,
+                required ? "Change Default Admin Password" : "Change Password",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+            );
+
             if (option != JOptionPane.OK_OPTION) {
                 if (required) {
                     JOptionPane.showMessageDialog(this, "The default admin password must be changed before using the app.");
@@ -614,11 +805,14 @@ public class SchoolManagementSystem extends JFrame {
                 }
                 return false;
             }
-            String password = new String(newPassword.getPassword());
-            if (!password.equals(new String(confirm.getPassword()))) {
+
+            String password = new String(newPasswordField.getPassword());
+            String confirmPassword = new String(confirmPasswordField.getPassword());
+            if (!password.equals(confirmPassword)) {
                 showError("Passwords do not match.");
                 continue;
             }
+
             try {
                 currentUser = schoolService.changePassword(currentUser, password);
                 refreshAll();
@@ -631,21 +825,29 @@ public class SchoolManagementSystem extends JFrame {
     }
 
     private void exportTable(JTable table, String defaultFileName) {
-        if (table == null || table.getRowCount() == 0) {
+        if (table == null) {
+            showError("This report is not available yet.");
+            return;
+        }
+        if (table.getRowCount() == 0) {
             showError("There is no data to export yet.");
             return;
         }
+
         JFileChooser chooser = new JFileChooser();
         chooser.setDialogTitle("Export " + defaultFileName);
         chooser.setSelectedFile(new File(defaultFileName));
         chooser.setFileFilter(new FileNameExtensionFilter("CSV files", "csv"));
-        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) {
+        int option = chooser.showSaveDialog(this);
+        if (option != JFileChooser.APPROVE_OPTION) {
             return;
         }
+
         File file = chooser.getSelectedFile();
         if (!file.getName().toLowerCase().endsWith(".csv")) {
             file = new File(file.getParentFile(), file.getName() + ".csv");
         }
+
         try {
             Path path = file.toPath();
             CsvExporter.writeTable(table, path);
@@ -653,6 +855,14 @@ public class SchoolManagementSystem extends JFrame {
         } catch (IOException ex) {
             showError("Could not export CSV: " + ex.getMessage());
         }
+    }
+
+    private void showLogin() {
+        rootLayout.show(root, "login");
+    }
+
+    private void showRegister() {
+        rootLayout.show(root, "register");
     }
 
     private void showApp() {
@@ -664,14 +874,6 @@ public class SchoolManagementSystem extends JFrame {
         refreshAll();
     }
 
-    private void showLogin() {
-        rootLayout.show(root, "login");
-    }
-
-    private void showRegister() {
-        rootLayout.show(root, "register");
-    }
-
     private void logout() {
         currentUser = null;
         loginPasswordField.setText("");
@@ -679,25 +881,25 @@ public class SchoolManagementSystem extends JFrame {
     }
 
     private boolean isHead() {
-        return currentUser != null && SchoolService.ROLE_HEAD.equals(currentUser.role);
+        return currentUser != null && "Head of School".equals(currentUser.role);
     }
 
     private boolean isTeacher() {
-        return currentUser != null && SchoolService.ROLE_TEACHER.equals(currentUser.role);
+        return currentUser != null && "Teacher".equals(currentUser.role);
     }
 
     private boolean isStudent() {
-        return currentUser != null && SchoolService.ROLE_STUDENT.equals(currentUser.role);
+        return currentUser != null && "Student".equals(currentUser.role);
     }
 
     private void clearRegisterForm() {
-        firstNameField.setText("");
-        lastNameField.setText("");
-        idField.setText("");
-        emailField.setText("");
-        passwordField.setText("");
-        confirmPasswordField.setText("");
-        roleBox.setSelectedIndex(0);
+        registerFirstNameField.setText("");
+        registerLastNameField.setText("");
+        registerIdField.setText("");
+        registerEmailField.setText("");
+        registerPasswordField.setText("");
+        registerConfirmPasswordField.setText("");
+        registerRoleBox.setSelectedIndex(0);
     }
 
     private void clearTaskForm() {
@@ -709,19 +911,32 @@ public class SchoolManagementSystem extends JFrame {
     }
 
     private JPanel pagePanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBackground(BACKGROUND);
-        return panel;
+        JPanel page = new JPanel(new GridBagLayout());
+        page.setBackground(BACKGROUND);
+        return page;
+    }
+
+    private GridBagConstraints centeredConstraints() {
+        GridBagConstraints constraints = new GridBagConstraints();
+        constraints.gridx = 0;
+        constraints.gridy = 0;
+        constraints.weightx = 1;
+        constraints.weighty = 1;
+        constraints.anchor = GridBagConstraints.CENTER;
+        return constraints;
     }
 
     private JPanel authCard(String title, String subtitle) {
-        JPanel card = cardPanel();
+        JPanel card = cardPanel(new GridBagLayout());
         card.setPreferredSize(new Dimension(520, 520));
-        JLabel heading = new JLabel(title);
-        heading.setFont(new Font("Segoe UI", Font.BOLD, 28));
-        heading.setForeground(TEXT);
-        addFull(card, heading, 0);
-        addFull(card, smallText(subtitle), 1);
+
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        titleLabel.setForeground(TEXT);
+        addFullWidth(card, titleLabel, 0);
+
+        JLabel subtitleLabel = smallText(subtitle);
+        addFullWidth(card, subtitleLabel, 1);
         return card;
     }
 
@@ -732,54 +947,38 @@ public class SchoolManagementSystem extends JFrame {
         return panel;
     }
 
-    private JPanel cardPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
+    private JPanel cardPanel(java.awt.LayoutManager layout) {
+        JPanel panel = new JPanel(layout);
         panel.setBackground(CARD);
-        panel.setBorder(BorderFactory.createCompoundBorder(BorderFactory.createLineBorder(new Color(229, 231, 235)), BorderFactory.createEmptyBorder(24, 24, 24, 24)));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(229, 231, 235)),
+            BorderFactory.createEmptyBorder(24, 24, 24, 24)
+        ));
         return panel;
     }
 
-    private JPanel buttonRow(int columns) {
-        JPanel panel = new JPanel(new GridLayout(0, columns, 12, 12));
-        panel.setOpaque(false);
-        return panel;
+    private void addFormRow(JPanel panel, String label, Component field, int row) {
+        GridBagConstraints labelConstraints = new GridBagConstraints();
+        labelConstraints.gridx = 0;
+        labelConstraints.gridy = row;
+        labelConstraints.anchor = GridBagConstraints.WEST;
+        labelConstraints.insets = new Insets(8, 0, 8, 14);
+
+        JLabel labelComponent = new JLabel(label);
+        labelComponent.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        labelComponent.setForeground(TEXT);
+        panel.add(labelComponent, labelConstraints);
+
+        GridBagConstraints fieldConstraints = new GridBagConstraints();
+        fieldConstraints.gridx = 1;
+        fieldConstraints.gridy = row;
+        fieldConstraints.weightx = 1;
+        fieldConstraints.fill = GridBagConstraints.HORIZONTAL;
+        fieldConstraints.insets = new Insets(8, 0, 8, 0);
+        panel.add(field, fieldConstraints);
     }
 
-    private JPanel taskActions(JTable table) {
-        JPanel actions = buttonRow(3);
-        JButton refresh = secondaryButton("Refresh");
-        refresh.addActionListener(event -> refreshAll());
-        JButton progress = secondaryButton("Mark In Progress");
-        progress.addActionListener(event -> updateSelectedTaskStatus(table, "In Progress"));
-        JButton complete = primaryButton("Mark Completed");
-        complete.addActionListener(event -> updateSelectedTaskStatus(table, "Completed"));
-        actions.add(refresh);
-        actions.add(progress);
-        actions.add(complete);
-        return actions;
-    }
-
-    private void addRow(JPanel panel, String label, Component field, int row) {
-        GridBagConstraints left = new GridBagConstraints();
-        left.gridx = 0;
-        left.gridy = row;
-        left.anchor = GridBagConstraints.WEST;
-        left.insets = new Insets(8, 0, 8, 14);
-        JLabel component = new JLabel(label);
-        component.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        component.setForeground(TEXT);
-        panel.add(component, left);
-
-        GridBagConstraints right = new GridBagConstraints();
-        right.gridx = 1;
-        right.gridy = row;
-        right.weightx = 1;
-        right.fill = GridBagConstraints.HORIZONTAL;
-        right.insets = new Insets(8, 0, 8, 0);
-        panel.add(field, right);
-    }
-
-    private void addFull(JPanel panel, Component component, int row) {
+    private void addFullWidth(JPanel panel, Component component, int row) {
         GridBagConstraints constraints = new GridBagConstraints();
         constraints.gridx = 0;
         constraints.gridy = row;
@@ -790,28 +989,11 @@ public class SchoolManagementSystem extends JFrame {
         panel.add(component, constraints);
     }
 
-    private GridBagConstraints centered() {
-        GridBagConstraints constraints = new GridBagConstraints();
-        constraints.gridx = 0;
-        constraints.gridy = 0;
-        constraints.weightx = 1;
-        constraints.weighty = 1;
-        constraints.anchor = GridBagConstraints.CENTER;
-        return constraints;
-    }
-
     private JLabel smallText(String text) {
         JLabel label = new JLabel(text);
         label.setForeground(MUTED);
         label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         return label;
-    }
-
-    private JTextArea textArea(int rows) {
-        JTextArea area = new JTextArea(rows, 24);
-        area.setLineWrap(true);
-        area.setWrapStyleWord(true);
-        return area;
     }
 
     private JButton primaryButton(String text) {
@@ -884,7 +1066,9 @@ public class SchoolManagementSystem extends JFrame {
             } catch (Exception ignored) {
                 // Use default look and feel if the system one is unavailable.
             }
-            new SchoolManagementSystem().setVisible(true);
+            SchoolManagementSystem app = new SchoolManagementSystem();
+            app.setVisible(true);
         });
     }
+
 }
