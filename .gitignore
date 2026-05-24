@@ -1,0 +1,20 @@
+*.class
+target/
+out/
+build/
+.idea/
+.vscode/
+*.log
+*.tmp
+*.bak
+
+# Keep local secrets out of Git.
+.env
+
+# Do not commit local database dumps unless intentionally exported.
+*.db
+*.sqlite
+*.sqlite3
+
+# Old database export from the original repository.
+SchoolManagementSystem

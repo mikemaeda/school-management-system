@@ -1,118 +1,130 @@
 # School Teaching & Syllabus Tracking System
 
-## Documentation
+A Java Swing desktop app for organizing teaching tasks, tracking syllabus progress, and collecting feedback from teachers and students.
 
-Project documentation and design files can be viewed below:
+## Current Version
 
+This version is a cleaned-up rebuild of the original NetBeans project. The app now uses a clearer Java structure with UI, service, DAO, model, database, and security layers.
 
-- 📄 [System Design Document](Design..pdf)
-- 📄 [Development Document](Development..pdf)
+## Core Features
 
-A role-based School Management System developed to improve teaching organization, monitor syllabus coverage, and enhance communication between the Head of School, teachers, and students.
-
-This system centralizes teaching planning, task allocation, and feedback collection into one platform, helping schools ensure that lessons are completed on schedule and that student learning outcomes are continuously evaluated.
-
-
-## Overview
-
-Many schools face challenges in tracking syllabus completion and monitoring teaching progress effectively. Teachers may struggle with daily planning, while administrators lack a centralized way to monitor lesson delivery and collect feedback from students.
-
-The School Management System addresses this problem by:
-
-- Allowing the Head of School to assign daily teaching tasks and deadlines.
-- Enabling teachers to submit daily checklists and reflections.
-- Allowing students to provide feedback on lessons.
-- Providing administrators with a centralized view of teaching progress and feedback.
-
-The system promotes accountability, organization, and improved communication within the school environment.
-
-## Features
-
-### User Management
-- Role-based authentication system.
-- Separate portals for:
+- Role-based login for:
   - Head of School
-  - Teachers
-  - Students
-- Secure login with encrypted password storage.
-- User data stored securely in a database.
+  - Teacher
+  - Student
+- Account registration with password hashing and stronger password validation.
+- Default Head of School account for first run, with a required password change after the first login.
+- Head of School dashboard with:
+  - Overview metrics
+  - Teacher task assignment
+  - All task tracking
+  - User list
+  - Teacher feedback review
+  - Student feedback review
+  - Optional email broadcast to teachers
+  - CSV exports for users, tasks, teacher feedback, and student feedback
+- Teacher dashboard with:
+  - Assigned task list
+  - Task status updates
+  - Lesson progress/reflection submission
+- Student dashboard with:
+  - Lesson reflection form
+  - Teacher/subject feedback ratings
+- SQLite database with automatic table creation, light migration support, foreign keys, and busy-timeout protection.
 
-### Head of School Portal
-- Assign teaching tasks to teachers.
-- Add subject, class, day, and deadlines.
-- Monitor teacher progress and syllabus coverage.
-- View teacher feedback submissions.
-- View student reflections.
-- Send emails to teachers based on feedback and progress.
+## Default Login
 
-### Teacher Portal
-- View assigned teaching tasks.
-- Submit daily checklist and reflections.
-- Provide feedback on lesson preparation and delivery.
-- Report syllabus coverage status.
+When the app starts for the first time, it creates a default Head of School account:
 
-### Student Portal
-- Submit lesson reflections.
-- Evaluate teaching clarity and engagement.
-- Provide additional comments for evaluation.
+```text
+Email: admin@school.local
+Password: Admin123!
+```
 
-### Database Management
-- Centralized storage using SQLite.
-- Stores:
-  - User signups
-  - Teacher task details
-  - Teacher feedback
-  - Student feedback
+Use this account to sign in. The app will immediately ask you to replace the default password. After that, create teacher and student accounts from the registration page.
 
----
+## Project Files
 
-## System Architecture
+- `src/main/java/schoolmanagement/SchoolManagementSystem.java` - main Swing user interface.
+- `src/main/java/schoolmanagement/service/` - application rules, email delivery, and CSV export helpers.
+- `src/main/java/schoolmanagement/dao/` - database access objects for users, tasks, and feedback.
+- `src/main/java/schoolmanagement/db/DBConnector.java` - SQLite database connection and automatic setup.
+- `src/main/java/schoolmanagement/security/PasswordUtils.java` - PBKDF2 password hashing and verification.
+- `src/main/java/schoolmanagement/model/` - simple app models used by the UI.
+- `docs/ARCHITECTURE.md` - short explanation of the code organization.
+- `database_schema.sql` - database schema reference.
+- `pom.xml` - Maven build file and dependencies.
+- `.env.example` - optional local configuration.
+- `Design..pdf`, `Development..pdf`, `Evaluation..pdf` - original documentation.
 
-### Technologies Used
-- **Programming Language:** Java
-- **Paradigm:** Object-Oriented Programming (OOP)
-- **Database:** SQLite
-- **Database Connectivity:** JDBC
+## Requirements
 
-### OOP Concepts Applied
-- Encapsulation for secure data handling.
-- Inheritance for shared user behaviors.
-- Polymorphism for role-based functionality.
-- Abstraction for managing system complexity.
+- Java JDK 17 or newer
+- Maven
 
----
+## Run The App
 
-## System Workflow
+From this folder:
 
-1. Users create accounts and select their role.
-2. The Head of School assigns teaching tasks to teachers.
-3. Teachers complete lessons and submit feedback.
-4. Students submit reflections on lessons.
-5. The Head of School reviews feedback and monitors progress.
-6. Emails are sent to teachers when necessary.
+```powershell
+mvn clean compile
+mvn exec:java
+```
 
----
+If Java is not installed system-wide, use the included helper script after the portable tools have been downloaded:
 
-## Database Structure
+```powershell
+.\run-school-app.ps1
+```
 
-The system uses one SQLite database containing four main tables:
+You can also run a quick database smoke test:
 
-- **Signup Table**
-  - Stores user information and roles.
+```powershell
+mvn "-Dapp.mainClass=schoolmanagement.AppSmokeTest" exec:java
+```
 
-- **Teacher Details Table**
-  - Stores assigned teaching tasks and deadlines.
+The app creates this database file automatically:
 
-- **Teacher Feedback Table**
-  - Stores teacher reflections and progress reports.
+```text
+school_management.db
+```
 
-- **Student Feedback Table**
-  - Stores student evaluations and comments.
+## Optional Environment Variables
 
+The default SQLite settings work without extra configuration.
 
-## Installation
+```powershell
+$env:DB_DRIVER = "org.sqlite.JDBC"
+$env:DB_URL = "jdbc:sqlite:school_management.db"
+```
 
-1. Clone the repository:
+Email broadcast requires SMTP settings:
 
-```bash
-git clone https://github.com/mikemaeda/school-management-system.git
+```powershell
+$env:SMTP_HOST = "smtp.gmail.com"
+$env:SMTP_PORT = "587"
+$env:SMTP_FROM = "your_email@gmail.com"
+$env:SMTP_PASSWORD = "your_gmail_app_password"
+```
+
+You can also pass configuration through Java system properties, which is useful for tests:
+
+```powershell
+mvn "-DDB_URL=jdbc:sqlite:test-school.db" exec:java
+```
+
+## Security Notes
+
+- No real passwords are stored in source code.
+- New user passwords are stored as PBKDF2 hashes.
+- The first-run admin password must be changed before using the app.
+- `.env`, `.db`, and build output files are ignored by Git.
+
+## Next Improvements
+
+Good future upgrades:
+
+- Add teacher task comments and due-date reminders.
+- Add chart summaries for syllabus coverage.
+- Split the Swing UI into smaller view classes if the interface keeps growing.
+- Add a packaged installer once the app is ready to share outside VS Code.
