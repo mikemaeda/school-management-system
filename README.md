@@ -2,35 +2,34 @@
 
 A Java Swing desktop app for organizing teaching tasks, tracking syllabus progress, and collecting feedback from teachers and students.
 
-## Current Version
+This project is intentionally a desktop application. It preserves the original sign-in, registration, and role-based dashboard flow instead of replacing it with a generic web dashboard.
 
-This version is a cleaned-up rebuild of the original NetBeans project. The app now uses a clearer Java structure with UI, service, DAO, model, database, and security layers.
+## What The App Does
 
-## Core Features
-
-- Role-based login for:
+- Provides role-based login for:
   - Head of School
   - Teacher
   - Student
-- Account registration with password hashing and stronger password validation.
-- Default Head of School account for first run, with a required password change after the first login.
-- Head of School dashboard with:
-  - Overview metrics
-  - Teacher task assignment
-  - All task tracking
-  - User list
-  - Teacher feedback review
-  - Student feedback review
-  - Optional email broadcast to teachers
-  - CSV exports for users, tasks, teacher feedback, and student feedback
-- Teacher dashboard with:
-  - Assigned task list
-  - Task status updates
-  - Lesson progress/reflection submission
-- Student dashboard with:
-  - Lesson reflection form
-  - Teacher/subject feedback ratings
-- SQLite database with automatic table creation, light migration support, foreign keys, and busy-timeout protection.
+- Supports account registration with password hashing and stronger password validation
+- Creates a default Head of School account on first run
+- Requires the default admin password to be changed after first login
+- Lets the Head of School:
+  - view dashboard metrics
+  - assign teacher tasks
+  - track all tasks
+  - view users
+  - review teacher feedback
+  - review student feedback
+  - optionally broadcast email to teachers
+  - export users, tasks, and feedback to CSV
+- Lets teachers:
+  - view assigned tasks
+  - update task status
+  - submit lesson progress/reflections
+- Lets students:
+  - submit lesson reflections
+  - rate teacher/subject feedback
+- Uses SQLite with automatic table creation and light migration support
 
 ## Default Login
 
@@ -41,28 +40,38 @@ Email: admin@school.local
 Password: Admin123!
 ```
 
-Use this account to sign in. The app will immediately ask you to replace the default password. After that, create teacher and student accounts from the registration page.
+After logging in, the app prompts you to replace the default password.
 
-## Project Files
+## Quick Start
 
-- `src/main/java/schoolmanagement/SchoolManagementSystem.java` - main Swing user interface.
-- `src/main/java/schoolmanagement/service/` - application rules, email delivery, and CSV export helpers.
-- `src/main/java/schoolmanagement/dao/` - database access objects for users, tasks, and feedback.
-- `src/main/java/schoolmanagement/db/DBConnector.java` - SQLite database connection and automatic setup.
-- `src/main/java/schoolmanagement/security/PasswordUtils.java` - PBKDF2 password hashing and verification.
-- `src/main/java/schoolmanagement/model/` - simple app models used by the UI.
-- `docs/ARCHITECTURE.md` - short explanation of the code organization.
-- `database_schema.sql` - database schema reference.
-- `pom.xml` - Maven build file and dependencies.
-- `.env.example` - optional local configuration.
-- `Design..pdf`, `Development..pdf`, `Evaluation..pdf` - original documentation.
+### Fastest Option: Build A Runnable App File
 
-## Requirements
+Requirements:
 
 - Java JDK 17 or newer
 - Maven
 
-## Run The App
+From this folder:
+
+```powershell
+mvn clean package
+java -jar target\school-management-system.jar
+```
+
+The packaged `.jar` includes the app dependencies and opens the original desktop interface.
+
+On Windows, you can also run:
+
+```powershell
+.\run-packaged-app.ps1
+```
+
+### Option 1: Run With Maven
+
+Requirements:
+
+- Java JDK 17 or newer
+- Maven
 
 From this folder:
 
@@ -71,23 +80,68 @@ mvn clean compile
 mvn exec:java
 ```
 
-If Java is not installed system-wide, use the included helper script after the portable tools have been downloaded:
+### Option 2: Run With The Included Helper Script
+
+If you are using the portable Java/Maven tools folder included beside this project, run:
 
 ```powershell
 .\run-school-app.ps1
 ```
 
-You can also run a quick database smoke test:
+## Shareable Download Instructions
+
+This project is best shared as a downloadable desktop app/project. Users can click the green **Code** button on GitHub, download the ZIP, unzip it, and run:
+
+1. Download or clone this repository.
+2. Open the folder in VS Code, IntelliJ, NetBeans, or a terminal.
+3. Make sure Java 17+ and Maven are installed, or use the helper script if the portable tools folder is available.
+4. Build and open the app:
+
+```powershell
+mvn clean package
+java -jar target\school-management-system.jar
+```
+
+The app opens as the original desktop window with the same sign-in, registration, and role-based dashboards.
+
+## Smoke Test
+
+Run a quick database and workflow smoke test:
 
 ```powershell
 mvn "-Dapp.mainClass=schoolmanagement.AppSmokeTest" exec:java
 ```
 
-The app creates this database file automatically:
+Expected result:
+
+```text
+Smoke test passed.
+```
+
+## Database
+
+The app creates and uses this local SQLite database file:
 
 ```text
 school_management.db
 ```
+
+This file is ignored by Git because it is local runtime data.
+
+## Project Files
+
+- `src/main/java/schoolmanagement/SchoolManagementSystem.java` - main Swing user interface
+- `src/main/java/schoolmanagement/service/` - application rules, email delivery, and CSV export helpers
+- `src/main/java/schoolmanagement/dao/` - database access objects for users, tasks, and feedback
+- `src/main/java/schoolmanagement/db/DBConnector.java` - SQLite database connection and automatic setup
+- `src/main/java/schoolmanagement/security/PasswordUtils.java` - PBKDF2 password hashing and verification
+- `src/main/java/schoolmanagement/model/` - app models used by the UI
+- `docs/ARCHITECTURE.md` - explanation of the code organization
+- `database_schema.sql` - database schema reference
+- `pom.xml` - Maven build file and dependencies
+- `run-packaged-app.ps1` - builds and launches the packaged desktop app
+- `.env.example` - optional local configuration
+- `Design..pdf`, `Development..pdf`, `Evaluation..pdf` - original project documentation
 
 ## Optional Environment Variables
 
@@ -107,12 +161,6 @@ $env:SMTP_FROM = "your_email@gmail.com"
 $env:SMTP_PASSWORD = "your_gmail_app_password"
 ```
 
-You can also pass configuration through Java system properties, which is useful for tests:
-
-```powershell
-mvn "-DDB_URL=jdbc:sqlite:test-school.db" exec:java
-```
-
 ## Security Notes
 
 - No real passwords are stored in source code.
@@ -120,11 +168,9 @@ mvn "-DDB_URL=jdbc:sqlite:test-school.db" exec:java
 - The first-run admin password must be changed before using the app.
 - `.env`, `.db`, and build output files are ignored by Git.
 
-## Next Improvements
+## Future Improvements
 
-Good future upgrades:
-
-- Add teacher task comments and due-date reminders.
-- Add chart summaries for syllabus coverage.
-- Split the Swing UI into smaller view classes if the interface keeps growing.
-- Add a packaged installer once the app is ready to share outside VS Code.
+- Package the app as a Windows installer
+- Add teacher task comments and due-date reminders
+- Add chart summaries for syllabus coverage
+- Split the Swing UI into smaller view classes if the interface keeps growing
